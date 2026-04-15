@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TubeSpeak — YouTube English Tutor</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --surface3: #252536;
+    --accent: #7c6af7;
+    --accent2: #f7c56a;
+    --accent3: #6af7b8;
+    --danger: #f76a6a;
+    --text: #e8e8f0;
+    --text2: #9999b0;
+    --text3: #5555708;
+    --border: rgba(255,255,255,0.07);
+    --glow: rgba(124,106,247,0.3);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* BG decorations */
+  body::before {
+    content:'';
+    position:fixed; top:-200px; right:-200px;
+    width:600px; height:600px;
+    background: radial-gradient(circle, rgba(124,106,247,0.12) 0%, transparent 70%);
+    pointer-events:none; z-index:0;
+  }
+  body::after {
+    content:'';
+    position:fixed; bottom:-200px; left:-200px;
+    width:500px; height:500px;
+    background: radial-gradient(circle, rgba(106,247,184,0.07) 0%, transparent 70%);
+    pointer-events:none; z-index:0;
+  }
+
+  /* Layout */
+  .app { display:flex; height:100vh; position:relative; z-index:1; }
+
+  /* Sidebar */
+  .sidebar {
+    width:220px; min-width:220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display:flex; flex-direction:column;
+    padding: 20px 0;
+  }
+  .logo {
+    padding: 0 20px 24px;
+    font-family: 'Syne', sans-serif;
+    font-weight:800; font-size:18px;
+    letter-spacing:-0.5px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .logo-dot { width:8px; height:8px; border-radius:50%; background: var(--accent); box-shadow:0 0 10px var(--glow); }
+  .nav-item {
+    display:flex; align-items:center; gap:10px;
+    padding:10px 20px; cursor:pointer;
+    font-size:13px; color: var(--text2);
+    transition: all 0.2s; border-left:2px solid transparent;
+    margin:1px 0;
+  }
+  .nav-item:hover { color:var(--text); background:rgba(255,255,255,0.03); }
+  .nav-item.active { color:var(--text); background:rgba(124,106,247,0.1); border-left-color:var(--accent); }
+  .nav-icon { font-size:16px; width:20px; text-align:center; }
+  .sidebar-section { padding: 20px 20px 8px; font-size:10px; letter-spacing:1.5px; color:var(--text3); font-weight:600; text-transform:uppercase; color:#444456; }
+
+  /* Main */
+  .main { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
+  .page { display:none; flex-direction:column; height:100%; padding:28px; }
+  .page.active { display:flex; }
+
+  /* Page headers */
+  .page-header { margin-bottom:24px; }
+  .page-title { font-family:'Syne',sans-serif; font-size:22px; font-weight:700; margin-bottom:4px; }
+  .page-subtitle { font-size:13px; color:var(--text2); }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px;
+  }
+  .card-sm { padding:12px 14px; }
+
+  /* Sentences Page */
+  .add-sentence-area { margin-bottom:20px; }
+  .input-group { display:flex; gap:8px; }
+  .input-group input, .input-group textarea, textarea.full {
+    flex:1; background:var(--surface2); border:1px solid var(--border);
+    color:var(--text); border-radius:8px; padding:10px 14px;
+    font-family:'DM Sans',sans-serif; font-size:13px;
+    outline:none; transition:border-color 0.2s;
+    resize:none;
+  }
+  .input-group input:focus, .input-group textarea:focus, textarea.full:focus {
+    border-color: var(--accent);
+  }
+  .btn {
+    padding:10px 16px; border-radius:8px; border:none;
+    cursor:pointer; font-family:'DM Sans',sans-serif;
+    font-size:12px; font-weight:500;
+    transition: all 0.2s; white-space:nowrap;
+  }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { background:#6b5ae6; box-shadow:0 0 20px var(--glow); }
+  .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text2); }
+  .btn-outline:hover { border-color:var(--accent); color:var(--text); }
+  .btn-sm { padding:6px 12px; font-size:11px; }
+  .btn-danger { background:rgba(247,106,106,0.15); color:var(--danger); border:1px solid rgba(247,106,106,0.2); }
+  .btn-danger:hover { background:rgba(247,106,106,0.25); }
+
+  .sentence-list { display:flex; flex-direction:column; gap:8px; }
+  .sentence-item {
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:10px; padding:14px 16px;
+    display:flex; align-items:flex-start; gap:12px;
+    transition: border-color 0.2s;
+  }
+  .sentence-item:hover { border-color:rgba(124,106,247,0.3); }
+  .sentence-num { font-size:10px; color:var(--accent); font-weight:700; font-family:'Syne',sans-serif; min-width:20px; padding-top:2px; }
+  .sentence-content { flex:1; }
+  .sentence-en { font-size:14px; color:var(--text); margin-bottom:3px; }
+  .sentence-ko { font-size:11px; color:var(--text2); }
+  .sentence-tag { font-size:10px; background:rgba(124,106,247,0.15); color:var(--accent); border-radius:4px; padding:2px 6px; margin-top:5px; display:inline-block; }
+  .sentence-actions { display:flex; gap:6px; align-items:flex-start; }
+  .tag-icon { font-size:11px; padding:5px 8px; border-radius:6px; background:var(--surface3); color:var(--text2); cursor:pointer; border:none; transition:all 0.2s; }
+  .tag-icon:hover { color:var(--accent); }
+  .empty-state { text-align:center; padding:40px 20px; color:var(--text2); }
+  .empty-icon { font-size:36px; margin-bottom:8px; }
+
+  /* Add form */
+  .add-form { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:16px; }
+  .form-row { display:flex; gap:8px; margin-bottom:8px; }
+  .form-row input { flex:1; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:9px 12px; font-family:'DM Sans',sans-serif; font-size:13px; outline:none; }
+  .form-row input:focus { border-color:var(--accent); }
+  .form-label { font-size:11px; color:var(--text2); margin-bottom:5px; font-weight:500; }
+
+  /* Chat Page */
+  .chat-area { flex:1; display:flex; flex-direction:column; min-height:0; }
+  .chat-context-bar {
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:10px; padding:10px 14px; margin-bottom:14px;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .context-label { font-size:11px; color:var(--text2); }
+  .context-pill {
+    font-size:11px; background:rgba(124,106,247,0.15); color:var(--accent);
+    border-radius:20px; padding:3px 10px; cursor:pointer;
+    border:1px solid rgba(124,106,247,0.2); transition:all 0.2s;
+  }
+  .context-pill.selected { background:var(--accent); color:#fff; }
+  .context-pill:hover { background:rgba(124,106,247,0.25); }
+  .chat-messages {
+    flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:12px;
+    padding-right:4px; margin-bottom:14px; min-height:200px; max-height:calc(100vh - 380px);
+  }
+  .chat-messages::-webkit-scrollbar { width:4px; }
+  .chat-messages::-webkit-scrollbar-track { background:transparent; }
+  .chat-messages::-webkit-scrollbar-thumb { background:var(--surface3); border-radius:4px; }
+
+  .msg { display:flex; flex-direction:column; max-width:82%; }
+  .msg.user { align-self:flex-end; align-items:flex-end; }
+  .msg.ai { align-self:flex-start; align-items:flex-start; }
+  .msg-bubble {
+    padding:11px 14px; border-radius:14px;
+    font-size:13px; line-height:1.6;
+  }
+  .msg.user .msg-bubble { background:var(--accent); color:#fff; border-bottom-right-radius:4px; }
+  .msg.ai .msg-bubble { background:var(--surface2); border:1px solid var(--border); color:var(--text); border-bottom-left-radius:4px; }
+  .msg-meta { font-size:10px; color:var(--text3); margin-top:3px; color:#44445a; }
+
+  .alternatives-box {
+    background:rgba(106,247,184,0.05); border:1px solid rgba(106,247,184,0.15);
+    border-radius:10px; padding:12px 14px; margin-top:4px;
+    max-width:90%;
+  }
+  .alt-title { font-size:10px; color:var(--accent3); font-weight:600; letter-spacing:0.5px; margin-bottom:8px; text-transform:uppercase; }
+  .alt-item { display:flex; align-items:flex-start; gap:8px; margin-bottom:6px; font-size:12px; }
+  .alt-num { color:var(--accent3); font-weight:700; min-width:16px; font-family:'Syne',sans-serif; font-size:11px; }
+  .correction-box {
+    background:rgba(247,197,106,0.06); border:1px solid rgba(247,197,106,0.2);
+    border-radius:10px; padding:12px 14px; margin-top:4px; max-width:90%;
+  }
+  .corr-title { font-size:10px; color:var(--accent2); font-weight:600; letter-spacing:0.5px; margin-bottom:6px; text-transform:uppercase; }
+  .corr-original { font-size:12px; color:var(--danger); text-decoration:line-through; margin-bottom:3px; }
+  .corr-fixed { font-size:12px; color:var(--accent3); }
+  .corr-reason { font-size:11px; color:var(--text2); margin-top:4px; }
+
+  .chat-input-area { display:flex; gap:8px; align-items:flex-end; }
+  .chat-input {
+    flex:1; background:var(--surface2); border:1px solid var(--border);
+    color:var(--text); border-radius:10px; padding:11px 14px;
+    font-family:'DM Sans',sans-serif; font-size:13px;
+    resize:none; outline:none; min-height:44px; max-height:100px;
+    transition:border-color 0.2s; line-height:1.5;
+  }
+  .chat-input:focus { border-color:var(--accent); }
+  .send-btn {
+    width:44px; height:44px; border-radius:10px; border:none;
+    background:var(--accent); color:#fff; cursor:pointer;
+    font-size:16px; display:flex; align-items:center; justify-content:center;
+    transition:all 0.2s; flex-shrink:0;
+  }
+  .send-btn:hover { background:#6b5ae6; box-shadow:0 0 16px var(--glow); }
+  .send-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+  .mic-btn {
+    width:44px; height:44px; border-radius:10px; border:none;
+    background:var(--surface2); color:var(--text2); cursor:pointer;
+    font-size:18px; display:flex; align-items:center; justify-content:center;
+    transition:all 0.2s; flex-shrink:0;
+    border:1px solid var(--border); position:relative;
+  }
+  .mic-btn:hover { border-color:var(--accent); color:var(--accent); }
+  .mic-btn.recording {
+    background:rgba(247,106,106,0.15);
+    border-color:var(--danger);
+    color:var(--danger);
+    animation: micPulse 1s infinite;
+  }
+  .mic-btn:disabled { opacity:0.4; cursor:not-allowed; }
+  @keyframes micPulse {
+    0%,100% { box-shadow:0 0 0 0 rgba(247,106,106,0.4); }
+    50% { box-shadow:0 0 0 8px rgba(247,106,106,0); }
+  }
+  .mic-status {
+    font-size:11px; color:var(--danger);
+    display:flex; align-items:center; gap:5px;
+    padding:5px 10px; background:rgba(247,106,106,0.08);
+    border-radius:6px; border:1px solid rgba(247,106,106,0.2);
+    margin-bottom:8px;
+    animation: fadeIn 0.2s ease;
+  }
+  .mic-dot { width:6px; height:6px; border-radius:50%; background:var(--danger); animation:typingPulse 1s infinite; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+  .typing-indicator { display:flex; align-items:center; gap:5px; padding:4px; }
+  .typing-dot { width:5px; height:5px; border-radius:50%; background:var(--text2); animation:typingPulse 1.2s infinite; }
+  .typing-dot:nth-child(2) { animation-delay:0.2s; }
+  .typing-dot:nth-child(3) { animation-delay:0.4s; }
+  @keyframes typingPulse { 0%,60%,100%{opacity:0.2} 30%{opacity:1} }
+
+  /* Stats Page */
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:20px; }
+  .stat-card {
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:16px;
+  }
+  .stat-label { font-size:10px; color:var(--text2); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; }
+  .stat-value { font-family:'Syne',sans-serif; font-size:28px; font-weight:700; }
+  .stat-value.accent { color:var(--accent); }
+  .stat-value.green { color:var(--accent3); }
+  .stat-value.yellow { color:var(--accent2); }
+  .stat-sub { font-size:11px; color:var(--text2); margin-top:3px; }
+  .week-selector { display:flex; gap:6px; margin-bottom:16px; }
+  .week-btn { padding:6px 14px; border-radius:20px; font-size:11px; }
+  .week-btn.active { background:var(--accent); color:#fff; border:none; }
+  .section-title { font-family:'Syne',sans-serif; font-size:14px; font-weight:700; margin-bottom:12px; }
+  .mistake-item {
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:10px; padding:12px 14px; margin-bottom:8px;
+  }
+  .mistake-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .mistake-count { font-size:10px; background:rgba(247,106,106,0.15); color:var(--danger); border-radius:20px; padding:2px 8px; font-weight:600; }
+  .mistake-wrong { font-size:12px; color:var(--danger); text-decoration:line-through; margin-bottom:2px; }
+  .mistake-right { font-size:12px; color:var(--accent3); }
+  .mistake-tip { font-size:11px; color:var(--text2); margin-top:4px; padding-top:6px; border-top:1px solid var(--border); }
+  .bar-chart { margin-top:8px; }
+  .bar-row { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .bar-day { font-size:11px; color:var(--text2); width:30px; }
+  .bar-track { flex:1; height:6px; background:var(--surface3); border-radius:3px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:3px; background:var(--accent); transition:width 0.8s ease; }
+  .bar-fill.green { background:var(--accent3); }
+  .bar-val { font-size:10px; color:var(--text2); width:20px; text-align:right; }
+  .progress-ring-container { display:flex; justify-content:center; padding:10px 0; }
+  svg.ring { transform:rotate(-90deg); }
+  .ring-bg { fill:none; stroke:var(--surface3); stroke-width:8; }
+  .ring-fg { fill:none; stroke:var(--accent3); stroke-width:8; stroke-linecap:round; transition:stroke-dashoffset 1s ease; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width:5px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--surface3); border-radius:3px; }
+
+  .divider { border:none; border-top:1px solid var(--border); margin:16px 0; }
+  .flex-between { display:flex; justify-content:space-between; align-items:center; }
+  .gap-8 { gap:8px; }
+  .loading-dots { display:inline-flex; gap:3px; }
+  .loading-dots span { width:4px; height:4px; border-radius:50%; background:var(--text2); animation:typingPulse 1s infinite; }
+  .loading-dots span:nth-child(2) { animation-delay:.15s; }
+  .loading-dots span:nth-child(3) { animation-delay:.3s; }
+  .badge { font-size:10px; border-radius:20px; padding:2px 8px; font-weight:600; }
+  .badge-purple { background:rgba(124,106,247,0.15); color:var(--accent); }
+  .toast {
+    position:fixed; bottom:24px; right:24px; z-index:999;
+    background:var(--surface3); border:1px solid var(--border);
+    border-radius:10px; padding:10px 16px;
+    font-size:12px; color:var(--text);
+    transform:translateY(60px); opacity:0;
+    transition:all 0.3s; pointer-events:none;
+  }
+  .toast.show { transform:translateY(0); opacity:1; }
+  textarea.full { width:100%; min-height:60px; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-dot"></div>
+      TubeSpeak
+    </div>
+
+    <div class="sidebar-section">메뉴</div>
+    <div class="nav-item active" onclick="showPage('sentences')">
+      <span class="nav-icon">📝</span> 문장 저장
+    </div>
+    <div class="nav-item" onclick="showPage('chat')">
+      <span class="nav-icon">💬</span> 영어 대화
+    </div>
+    <div class="nav-item" onclick="showPage('stats')">
+      <span class="nav-icon">📊</span> 학습 통계
+    </div>
+
+    <div style="margin-top:auto; padding:16px 20px;">
+      <div style="font-size:11px; color:#33334a; line-height:1.5;">
+        저장된 문장<br>
+        <span id="sidebar-count" style="color:var(--accent); font-weight:600;">0</span>개
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Sentences Page -->
+    <div class="page active" id="page-sentences">
+      <div class="page-header">
+        <div class="page-title">📝 문장 저장</div>
+        <div class="page-subtitle">유튜브에서 배운 표현을 저장하세요</div>
+      </div>
+
+      <div class="add-form" id="add-form">
+        <div class="form-label">영어 문장</div>
+        <div class="form-row" style="margin-bottom:8px;">
+          <input type="text" id="input-en" placeholder="e.g. I'm totally down for that." />
+        </div>
+        <div class="form-label">한국어 뜻 (선택)</div>
+        <div class="form-row" style="margin-bottom:8px;">
+          <input type="text" id="input-ko" placeholder="e.g. 나 그거 완전 찬성이야." />
+        </div>
+        <div class="form-label">태그 (선택)</div>
+        <div class="form-row">
+          <input type="text" id="input-tag" placeholder="e.g. 구어체, 동의표현, 캐주얼" />
+          <button class="btn btn-primary" onclick="addSentence()">저장</button>
+        </div>
+      </div>
+
+      <div class="flex-between" style="margin-bottom:12px;">
+        <div class="section-title">저장된 문장</div>
+        <span id="sentence-count" class="badge badge-purple">0개</span>
+      </div>
+      <div class="sentence-list" id="sentence-list">
+        <div class="empty-state">
+          <div class="empty-icon">🎬</div>
+          <div style="font-size:13px; margin-bottom:4px;">아직 저장된 문장이 없어요</div>
+          <div style="font-size:11px; color:#44445a;">유튜브에서 배운 표현을 위에 입력해보세요</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chat Page -->
+    <div class="page" id="page-chat" style="min-height:0;">
+      <div class="page-header" style="margin-bottom:14px;">
+        <div class="page-title">💬 영어 대화</div>
+        <div class="page-subtitle">저장한 표현을 활용해 AI와 대화해보세요</div>
+      </div>
+
+      <div class="chat-context-bar">
+        <span class="context-label">학습할 표현:</span>
+        <div id="context-pills" style="display:flex; flex-wrap:wrap; gap:6px;">
+          <span style="font-size:11px; color:#33334a;">저장된 문장을 먼저 추가해주세요</span>
+        </div>
+        <button class="btn btn-sm btn-outline" style="margin-left:auto;" onclick="startNewChat()">새 대화</button>
+      </div>
+
+      <div class="chat-messages" id="chat-messages">
+        <div class="msg ai">
+          <div class="msg-bubble">
+            안녕하세요! 👋 저장한 표현을 선택하고 영어로 대화해봐요. 위에서 연습할 표현을 고르면 제가 그 표현을 활용한 대화를 시작할게요!
+          </div>
+        </div>
+      </div>
+
+      <div id="mic-status-bar" style="display:none;" class="mic-status">
+        <div class="mic-dot"></div>
+        <span id="mic-status-text">듣고 있어요... 말해보세요!</span>
+      </div>
+      <div class="chat-input-area">
+        <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="마이크로 말하기">🎤</button>
+        <textarea class="chat-input" id="chat-input" placeholder="영어로 말하거나 입력해보세요..." rows="1"
+          onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+
+    <!-- Stats Page -->
+    <div class="page" id="page-stats">
+      <div class="page-header">
+        <div class="page-title">📊 학습 통계</div>
+        <div class="page-subtitle">주간 학습 현황과 자주 틀리는 표현을 확인하세요</div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">이번주 대화 수</div>
+          <div class="stat-value accent" id="stat-chats">0</div>
+          <div class="stat-sub">총 메시지</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">교정된 표현</div>
+          <div class="stat-value" id="stat-corrections" style="color:var(--danger)">0</div>
+          <div class="stat-sub">이번주</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">저장 문장</div>
+          <div class="stat-value green" id="stat-sentences">0</div>
+          <div class="stat-sub">전체</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div class="section-title">📅 이번주 학습 활동</div>
+        <div class="bar-chart" id="weekly-chart">
+          <!-- generated by JS -->
+        </div>
+      </div>
+
+      <div class="section-title">⚠️ 자주 틀리는 표현</div>
+      <div id="mistakes-list">
+        <div class="empty-state" style="padding:24px;">
+          <div class="empty-icon">✨</div>
+          <div style="font-size:13px;">아직 교정 기록이 없어요</div>
+          <div style="font-size:11px; color:#33334a; margin-top:4px;">대화를 통해 표현을 연습해보세요!</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== STATE ==========
+let state = {
+  sentences: [],
+  chatHistory: [],
+  selectedContext: null,
+  corrections: [],
+  weeklyActivity: {},
+  isLoading: false
+};
+
+// Load from storage
+async function loadState() {
+  try {
+    const s = await window.storage.get('tubespeak-sentences');
+    if (s) state.sentences = JSON.parse(s.value);
+  } catch(e) {}
+  try {
+    const c = await window.storage.get('tubespeak-corrections');
+    if (c) state.corrections = JSON.parse(c.value);
+  } catch(e) {}
+  try {
+    const w = await window.storage.get('tubespeak-weekly');
+    if (w) state.weeklyActivity = JSON.parse(w.value);
+  } catch(e) {}
+  renderSentences();
+  renderContextPills();
+  renderStats();
+}
+
+async function saveState() {
+  try {
+    await window.storage.set('tubespeak-sentences', JSON.stringify(state.sentences));
+    await window.storage.set('tubespeak-corrections', JSON.stringify(state.corrections));
+    await window.storage.set('tubespeak-weekly', JSON.stringify(state.weeklyActivity));
+  } catch(e) {}
+}
+
+// ========== NAVIGATION ==========
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (id === 'stats') renderStats();
+}
+
+// ========== SENTENCES ==========
+function addSentence() {
+  const en = document.getElementById('input-en').value.trim();
+  const ko = document.getElementById('input-ko').value.trim();
+  const tag = document.getElementById('input-tag').value.trim();
+  if (!en) { showToast('영어 문장을 입력해주세요!'); return; }
+  state.sentences.push({ id: Date.now(), en, ko, tag, createdAt: new Date().toISOString() });
+  document.getElementById('input-en').value = '';
+  document.getElementById('input-ko').value = '';
+  document.getElementById('input-tag').value = '';
+  saveState();
+  renderSentences();
+  renderContextPills();
+  showToast('✅ 문장이 저장됐어요!');
+}
+
+function deleteSentence(id) {
+  state.sentences = state.sentences.filter(s => s.id !== id);
+  saveState(); renderSentences(); renderContextPills();
+}
+
+function renderSentences() {
+  const list = document.getElementById('sentence-list');
+  const count = state.sentences.length;
+  document.getElementById('sentence-count').textContent = count + '개';
+  document.getElementById('sidebar-count').textContent = count;
+  document.getElementById('stat-sentences').textContent = count;
+  if (!count) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">🎬</div><div style="font-size:13px; margin-bottom:4px;">아직 저장된 문장이 없어요</div><div style="font-size:11px; color:#44445a;">유튜브에서 배운 표현을 위에 입력해보세요</div></div>`;
+    return;
+  }
+  list.innerHTML = state.sentences.map((s, i) => `
+    <div class="sentence-item">
+      <div class="sentence-num">${String(i+1).padStart(2,'0')}</div>
+      <div class="sentence-content">
+        <div class="sentence-en">${escHtml(s.en)}</div>
+        ${s.ko ? `<div class="sentence-ko">${escHtml(s.ko)}</div>` : ''}
+        ${s.tag ? `<span class="sentence-tag"># ${escHtml(s.tag)}</span>` : ''}
+      </div>
+      <div class="sentence-actions">
+        <button class="tag-icon" onclick="selectForChat(${s.id})" title="대화에서 연습">💬</button>
+        <button class="tag-icon" onclick="deleteSentence(${s.id})" title="삭제">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectForChat(id) {
+  const s = state.sentences.find(x => x.id === id);
+  if (!s) return;
+  state.selectedContext = s;
+  renderContextPills();
+  showPage('chat');
+  document.querySelectorAll('.nav-item')[1].classList.add('active');
+  document.querySelectorAll('.nav-item')[0].classList.remove('active');
+  document.getElementById('page-sentences').classList.remove('active');
+  document.getElementById('page-chat').classList.add('active');
+  startNewChat(s);
+}
+
+// ========== CONTEXT PILLS ==========
+function renderContextPills() {
+  const container = document.getElementById('context-pills');
+  if (!state.sentences.length) {
+    container.innerHTML = `<span style="font-size:11px; color:#33334a;">저장된 문장을 먼저 추가해주세요</span>`;
+    return;
+  }
+  container.innerHTML = state.sentences.map(s => `
+    <span class="context-pill ${state.selectedContext?.id === s.id ? 'selected' : ''}"
+      onclick="selectContext(${s.id})">${escHtml(s.en.length > 30 ? s.en.slice(0,30)+'…' : s.en)}</span>
+  `).join('');
+}
+
+function selectContext(id) {
+  const s = state.sentences.find(x => x.id === id);
+  state.selectedContext = s;
+  renderContextPills();
+  startNewChat(s);
+}
+
+// ========== CHAT ==========
+function startNewChat(sentence) {
+  state.chatHistory = [];
+  const container = document.getElementById('chat-messages');
+  const s = sentence || state.selectedContext;
+  if (s) {
+    container.innerHTML = '';
+    addAIBubble(`Let's practice the expression: <strong>"${escHtml(s.en)}"</strong>${s.ko ? ` (${escHtml(s.ko)})` : ''}<br><br>I'll start a conversation where you can use this phrase. Ready? Here we go! 🚀<br><br>Hey! I heard there's a new café that opened downtown. Some friends are going this weekend — want to join us?`);
+    state.chatHistory.push({ role: 'assistant', content: `Practice expression: "${s.en}". Start a natural conversation where the student should use or relate to this expression. Message: Hey! I heard there's a new café that opened downtown. Some friends are going this weekend — want to join us?` });
+  } else {
+    container.innerHTML = '';
+    addAIBubble(`안녕하세요! 👋 위에서 연습할 표현을 선택하거나, 자유롭게 영어로 대화해봐요!`);
+  }
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const userMsg = input.value.trim();
+  if (!userMsg || state.isLoading) return;
+
+  input.value = ''; input.style.height = 'auto';
+  state.isLoading = true;
+  document.getElementById('send-btn').disabled = true;
+
+  // Track activity
+  const today = new Date().toISOString().split('T')[0];
+  state.weeklyActivity[today] = (state.weeklyActivity[today] || 0) + 1;
+
+  addUserBubble(userMsg);
+  state.chatHistory.push({ role: 'user', content: userMsg });
+
+  const typingEl = addTypingIndicator();
+
+  try {
+    const contextSentence = state.selectedContext;
+    const systemPrompt = `You are a friendly English conversation tutor. The student is Korean and learning English through YouTube videos.
+
+${contextSentence ? `The student is practicing this expression: "${contextSentence.en}"${contextSentence.ko ? ` (meaning: ${contextSentence.ko})` : ''}` : 'Have a free conversation.'}
+
+Your response MUST follow this EXACT JSON format:
+{
+  "reply": "Your natural conversational reply in English (2-4 sentences, keep it engaging)",
+  "alternatives": [
+    {"text": "Alternative way 1 to say what the student said", "note": "brief Korean note"},
+    {"text": "Alternative way 2", "note": "brief Korean note"},
+    {"text": "Alternative way 3", "note": "brief Korean note"}
+  ],
+  "correction": null
+}
+
+OR if there's a grammar/expression correction needed:
+{
+  "reply": "Your conversational reply",
+  "alternatives": [...3 alternatives...],
+  "correction": {
+    "original": "the incorrect part",
+    "fixed": "the corrected version",
+    "reason": "짧은 한국어 설명 (1-2 sentences)"
+  }
+}
+
+Rules:
+- reply: Always in English, natural, conversational
+- alternatives: 3 different ways to express what the student said - slightly more advanced or natural variations
+- correction: ONLY if there's a real grammar/unnatural expression error. null if fine.
+- Keep the conversation flowing naturally
+- Be encouraging and warm
+- Return ONLY the JSON object, no markdown.`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: state.chatHistory
+      })
+    });
+
+    const data = await response.json();
+    const rawText = data.content.map(i => i.text || '').join('');
+    
+    let parsed;
+    try {
+      const clean = rawText.replace(/```json|```/g, '').trim();
+      parsed = JSON.parse(clean);
+    } catch(e) {
+      parsed = { reply: rawText, alternatives: [], correction: null };
+    }
+
+    typingEl.remove();
+
+    // Main reply
+    addAIBubble(parsed.reply);
+    state.chatHistory.push({ role: 'assistant', content: parsed.reply });
+
+    // Alternatives
+    if (parsed.alternatives && parsed.alternatives.length) {
+      addAlternatives(parsed.alternatives);
+    }
+
+    // Correction
+    if (parsed.correction) {
+      addCorrection(parsed.correction);
+      state.corrections.push({
+        date: today,
+        original: parsed.correction.original,
+        fixed: parsed.correction.fixed,
+        reason: parsed.correction.reason
+      });
+    }
+
+    await saveState();
+    renderStats();
+
+  } catch(err) {
+    typingEl.remove();
+    addAIBubble("오류가 발생했어요. 잠시 후 다시 시도해주세요. 😅");
+  }
+
+  state.isLoading = false;
+  document.getElementById('send-btn').disabled = false;
+}
+
+function addUserBubble(text) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.innerHTML = `<div class="msg-bubble">${escHtml(text)}</div><div class="msg-meta">나</div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function addAIBubble(text) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `<div class="msg-bubble">${text}</div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function addAlternatives(alts) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `<div class="alternatives-box">
+    <div class="alt-title">💡 이렇게도 말할 수 있어요</div>
+    ${alts.map((a, i) => `<div class="alt-item"><span class="alt-num">${i+1}</span><div><div style="color:var(--text);font-size:12px;">${escHtml(a.text)}</div><div style="font-size:11px;color:var(--text2);margin-top:1px;">${escHtml(a.note||'')}</div></div></div>`).join('')}
+  </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function addCorrection(corr) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `<div class="correction-box">
+    <div class="corr-title">✏️ 이 표현을 다듬어봐요</div>
+    <div class="corr-original">${escHtml(corr.original)}</div>
+    <div class="corr-fixed">→ ${escHtml(corr.fixed)}</div>
+    <div class="corr-reason">${escHtml(corr.reason)}</div>
+  </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function addTypingIndicator() {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = `<div class="msg-bubble"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+// ========== STATS ==========
+function renderStats() {
+  // Update counts
+  document.getElementById('stat-sentences').textContent = state.sentences.length;
+
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+
+  // Weekly corrections
+  const weekCorrections = state.corrections.filter(c => new Date(c.date) >= weekStart);
+  document.getElementById('stat-corrections').textContent = weekCorrections.length;
+
+  // Chat count (total activity this week)
+  let weekChats = 0;
+  Object.entries(state.weeklyActivity).forEach(([date, count]) => {
+    if (new Date(date) >= weekStart) weekChats += count;
+  });
+  document.getElementById('stat-chats').textContent = weekChats;
+
+  // Bar chart
+  const days = ['일','월','화','수','목','금','토'];
+  const barChart = document.getElementById('weekly-chart');
+  const maxVal = Math.max(...Object.values(state.weeklyActivity), 1);
+  const chartRows = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    const val = state.weeklyActivity[key] || 0;
+    const pct = Math.round((val / maxVal) * 100);
+    const dayLabel = days[d.getDay()];
+    const isToday = i === 0;
+    chartRows.push(`<div class="bar-row">
+      <div class="bar-day" style="${isToday?'color:var(--accent);font-weight:600;':''}">
+        ${dayLabel}${isToday?' ●':''}
+      </div>
+      <div class="bar-track"><div class="bar-fill ${val>0?'':''}": "" style="width:${pct}%; background:${isToday?'var(--accent3)':'var(--accent)'}"></div></div>
+      <div class="bar-val">${val}</div>
+    </div>`);
+  }
+  barChart.innerHTML = chartRows.join('');
+
+  // Mistakes
+  const mistakeMap = {};
+  state.corrections.forEach(c => {
+    const key = c.original;
+    if (!mistakeMap[key]) mistakeMap[key] = { ...c, count: 0 };
+    mistakeMap[key].count++;
+  });
+  const sorted = Object.values(mistakeMap).sort((a,b) => b.count - a.count);
+  const mistakesList = document.getElementById('mistakes-list');
+  if (!sorted.length) {
+    mistakesList.innerHTML = `<div class="empty-state" style="padding:24px;"><div class="empty-icon">✨</div><div style="font-size:13px;">아직 교정 기록이 없어요</div><div style="font-size:11px; color:#33334a; margin-top:4px;">대화를 통해 표현을 연습해보세요!</div></div>`;
+    return;
+  }
+  mistakesList.innerHTML = sorted.slice(0, 10).map(m => `
+    <div class="mistake-item">
+      <div class="mistake-header">
+        <span style="font-size:12px; font-weight:500;">틀린 표현</span>
+        <span class="mistake-count">${m.count}회</span>
+      </div>
+      <div class="mistake-wrong">${escHtml(m.original)}</div>
+      <div class="mistake-right">✓ ${escHtml(m.fixed)}</div>
+      <div class="mistake-tip">${escHtml(m.reason)}</div>
+    </div>
+  `).join('');
+}
+
+// ========== UTILS ==========
+function escHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ========== SPEECH RECOGNITION ==========
+let recognition = null;
+let isRecording = false;
+
+function initSpeechRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return null;
+  const r = new SpeechRecognition();
+  r.lang = 'en-US';
+  r.continuous = false;
+  r.interimResults = true;
+
+  r.onstart = () => {
+    isRecording = true;
+    const btn = document.getElementById('mic-btn');
+    btn.classList.add('recording');
+    btn.textContent = '\u23F9';
+    btn.title = '클릭해서 중지';
+    document.getElementById('mic-status-bar').style.display = 'flex';
+    document.getElementById('mic-status-text').textContent = '듣고 있어요... 말해보세요!';
+  };
+
+  r.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    const input = document.getElementById('chat-input');
+    input.value = final || interim;
+    autoResize(input);
+    if (interim) {
+      document.getElementById('mic-status-text').textContent = '인식 중: ' + interim;
+    }
+  };
+
+  r.onend = () => {
+    isRecording = false;
+    const btn = document.getElementById('mic-btn');
+    btn.classList.remove('recording');
+    btn.textContent = '\uD83C\uDF99';
+    btn.title = '마이크로 말하기';
+    document.getElementById('mic-status-bar').style.display = 'none';
+    const val = document.getElementById('chat-input').value.trim();
+    if (val) {
+      setTimeout(() => sendMessage(), 400);
+    }
+  };
+
+  r.onerror = (e) => {
+    isRecording = false;
+    const btn = document.getElementById('mic-btn');
+    btn.classList.remove('recording');
+    btn.textContent = '\uD83C\uDF99';
+    document.getElementById('mic-status-bar').style.display = 'none';
+    const msgs = {
+      'not-allowed': '마이크 권한이 필요해요. 브라우저 설정에서 허용해주세요.',
+      'no-speech': '음성이 감지되지 않았어요. 다시 시도해보세요.',
+      'network': '네트워크 오류가 발생했어요.',
+    };
+    showToast(msgs[e.error] || '음성 인식 오류: ' + e.error);
+  };
+
+  return r;
+}
+
+function toggleMic() {
+  if (state.isLoading) return;
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    showToast('이 브라우저는 음성 인식을 지원하지 않아요. Chrome을 사용해보세요!');
+    return;
+  }
+  if (isRecording) {
+    recognition && recognition.stop();
+    return;
+  }
+  recognition = initSpeechRecognition();
+  document.getElementById('chat-input').value = '';
+  recognition.start();
+}
+
+// Init
+loadState();
+</script>
+</body>
+</html>
